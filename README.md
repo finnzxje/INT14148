@@ -1,6 +1,6 @@
 # Project: Distributed PostgreSQL Database with Streaming Replication
 
-**Course:** INT1414 - Distributed and Parallel Database Systems  
+**Course:** INT14148 - Distributed and Parallel Database Systems  
 **Project ID:** Project 12
 
 ## Project Description
@@ -16,9 +16,9 @@ The cluster consists of one primary node that handles all write operations and t
 | Role      | Hostname          | Operating System    | Static IP Address |
 | :-------- | :---------------- | :------------------ | :---------------- |
 | Primary   | endeavour-primary | EndeavourOS (Host)  | `192.168.122.1`   |
-| Standby 1 | node2             | Ubuntu Server 24.04 | `192.168.122.102` |
-| Standby 2 | node3             | Ubuntu Server 24.04 | `192.168.122.103` |
-| Standby 3 | node4             | Ubuntu Server 24.04 | `192.168.122.104` |
+| Standby 1 | node1             | Ubuntu Server 24.04 | `192.168.122.101` |
+| Standby 2 | node2             | Ubuntu Server 24.04 | `192.168.122.102` |
+| Standby 3 | node3             | Ubuntu Server 24.04 | `192.168.122.103` |
 
 ## Technologies Used
 
