@@ -45,7 +45,7 @@ The environment was configured following these major phases:
 
 - A "golden image" template was created using a minimal installation of Ubuntu Server 24.04 on a KVM virtual machine.
 - The template was fully updated (`apt update && apt upgrade`), and essential tools, including the matching PostgreSQL 17 version, were pre-installed.
-- This template was then cloned three times to create the `node2`, `node3`, and `node4` virtual machines.
+- This template was then cloned three times to create the `node1`, `node2`, and `node3` virtual machines.
 
 #### 3. Network & Identity Configuration
 
