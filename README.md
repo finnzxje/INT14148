@@ -1,7 +1,9 @@
 # Project: Distributed PostgreSQL Database with Streaming Replication
 
-**Course:** INT14148 - Distributed and Parallel Database Systems  
+**Course:** INT14148 - Distributed Database Systems  
 **Project ID:** Project 12
+**Student ID:** N22DCCN082
+**Class ID:** D22CQCN01-N
 
 ## Project Description
 
@@ -13,12 +15,12 @@ The system is built on a hybrid physical-virtual model, with the host machine ac
 
 The cluster consists of one primary node that handles all write operations and three standby nodes that replicate data from the primary in near real-time. The standby nodes can be used to serve read-only queries.
 
-| Role      | Hostname          | Operating System    | Static IP Address |
-| :-------- | :---------------- | :------------------ | :---------------- |
-| Primary   | endeavour-primary | EndeavourOS (Host)  | `192.168.122.1`   |
-| Standby 1 | node1             | Ubuntu Server 24.04 | `192.168.122.101` |
-| Standby 2 | node2             | Ubuntu Server 24.04 | `192.168.122.102` |
-| Standby 3 | node3             | Ubuntu Server 24.04 | `192.168.122.103` |
+| Role      | Hostname | Operating System    | Static IP Address |
+| :-------- | :------- | :------------------ | :---------------- |
+| Primary   | Lenovo   | EndeavourOS (Host)  | `192.168.122.1`   |
+| Standby 1 | node1    | Ubuntu Server 24.04 | `192.168.122.101` |
+| Standby 2 | node2    | Ubuntu Server 24.04 | `192.168.122.102` |
+| Standby 3 | node3    | Ubuntu Server 24.04 | `192.168.122.103` |
 
 ## Technologies Used
 
