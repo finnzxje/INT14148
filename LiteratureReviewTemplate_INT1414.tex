@@ -72,6 +72,7 @@ The "everything is broken" problem is even more severe. If our one and only data
 
 With the main goals of speed and reliability in mind for a future large-scale site, I had to make a big decision right at the start: how should the data be organized across multiple servers? It really boiled down to two main philosophies: splitting the data up, or making copies of it.
 
+
 \subsection{The "Divide and Conquer" Method: Sharding}
 The first philosophy, sharding, is like deciding to replace one massive, central filing cabinet with several smaller ones. You'd organize them by a clear rule—for example, putting all customer files for names A-M in the first cabinet, and N-Z in the second.
 
@@ -82,6 +83,7 @@ The other philosophy, and the one I chose for this project, is replication. Inst
 
 The system operates on a simple rule: any new information (a write) must go to the master cabinet first. Once it's there, an identical copy of the update is immediately sent out to all the duplicate cabinets. The payoff for this is huge. When a hundred people need to look something up (a read), they can be sent to any of the available copies. This keeps the line at the master cabinet short, leaving it free to handle new, incoming information.
 
+
 \section{Criteria for Assessing Solutions} \label{sec:criteria}
 This may be a modified version of your proposal depending on previously carried out research or any feedback received.  
 
@@ -90,13 +92,25 @@ This may be a modified version of your proposal depending on previously carried 
 \section{Implementation Methodology}
 
 \subsection{System Environment and Network Configuration}
-I built my four-node cluster using a mix of my main computer and some virtual ones. My physical machine was the primary server, and I ran the three standby servers as virtual machines (VMs) right on that same computer.
+% I built my four-node cluster using a mix of my main computer and some virtual ones. My physical machine was the primary server, and I ran the three standby servers as virtual machines (VMs) right on that same computer.
+%
+% To do this, I used KVM/QEMU for the virtualization part, mostly because it’s already built into Linux and works well. The virt-manager program was what I used to handle the VMs.
+%
+% To get all these servers talking to each other, I put them all on their own private network (192.168.122.0/24). This kept the important database traffic separate from everything else. A crucial step was giving each server a static IP address. I did this so the standby servers would never lose track of where the primary server was, which is essential for replication to work without issues.
+%
+% All the specific details, like the IP addresses I used for each server, are listed in Table \ref{tab:node_config}.
 
-To do this, I used KVM/QEMU for the virtualization part, mostly because it’s already built into Linux and works well. The virt-manager program was what I used to handle the VMs.
+I built my four-node cluster using a mix of my main computer and some virtual ones. My physical machine was the primary server, and I ran the three standby servers as virtual machines (VMs) right on that same computer. To do this, I used KVM/QEMU for the virtualization part, managed with the `virt-manager` program.
 
-To get all these servers talking to each other, I put them all on their own private network (192.168.122.0/24). This kept the important database traffic separate from everything else. A crucial step was giving each server a static IP address. I did this so the standby servers would never lose track of where the primary server was, which is essential for replication to work without issues.
+To get all these servers talking to each other, I put them all on their own private network (`192.168.122.0/24`). This kept the important database traffic separate from everything else. A crucial step was giving each server a static IP address, which is essential for stable replication. The overall architecture is illustrated in Figure \ref{fig:architecture}, and the specific node details are listed in Table \ref{tab:node_config}.
 
-All the specific details, like the IP addresses I used for each server, are listed in Table \ref{tab:node_config}.
+\begin{figure}[!h]
+    \centering
+    \includegraphics[width=0.9\columnwidth]{./images/architecture-diagram.png}
+    \caption{The high-level architecture of the four-node replicated PostgreSQL cluster, showing the flow of write/read queries and the WAL replication stream.}
+    \label{fig:architecture}
+\end{figure}
+
 \begin{table}[h!]
 \centering
 \caption{Node Configuration for the Distributed Cluster}
