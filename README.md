@@ -32,26 +32,22 @@ The cluster consists of one primary node that handles all write operations (`INS
 
 ```mermaid
 graph TD
-    subgraph "Application Layer"
-        A(Web Application)
+    subgraph Application Layer
+        A[Web Application]
     end
-
-    subgraph "Database Cluster (192.168.122.0/24)"
-        P[Primary Server<br>Lenovo<br>192.168.122.1]
-        S1[Standby 1<br>node1<br>192.168.122.101]
-        S2[Standby 2<br>node2<br>192.168.122.102]
-        S3[Standby 3<br>node3<br>192.168.122.103]
+    subgraph Database Cluster
+        P[Primary Server: Lenovo\n192.168.122.1]
+        S1[Standby 1: node1\n192.168.122.101]
+        S2[Standby 2: node2\n192.168.122.102]
+        S3[Standby 3: node3\n192.168.122.103]
     end
-
     A -- "Writes (SQL)" --> P
     A -- "Reads (SQL)" --> S1
     A -- "Reads (SQL)" --> S2
     A -- "Reads (SQL)" --> S3
-
-    P -- "Streaming Replication (WAL)" ==> S1
-    P -- "Streaming Replication (WAL)" ==> S2
-    P -- "Streaming Replication (WAL)" ==> S3
-
+    P -- "Streaming Replication (WAL)" --> S1
+    P -- "Streaming Replication (WAL)" --> S2
+    P -- "Streaming Replication (WAL)" --> S3
     style P fill:#c9f,stroke:#333,stroke-width:2px
     style S1 fill:#9cf,stroke:#333,stroke-width:2px
     style S2 fill:#9cf,stroke:#333,stroke-width:2px
