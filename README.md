@@ -111,6 +111,7 @@ Prepare the primary server to accept replication connections.
     listen_addresses = 'localhost, 192.168.122.1'
     wal_level = replica
     max_wal_senders = 10
+    max_replication_slots = 10
     ```
 
 3.  **Edit `pg_hba.conf`:**
@@ -122,7 +123,16 @@ Prepare the primary server to accept replication connections.
     host     replication   replicator  192.168.122.0/24    scram-sha-256
     ```
 
-4.  **Restart the Primary Server:**
+4.  Create Replication Slots: A unique slot must be created for each standby server before they are set up. This guarantees WAL retention.
+
+    ```SQL
+    -- Run these commands in psql on the primary server
+    SELECT pg_create_physical_replication_slot('node1_slot');
+    SELECT pg_create_physical_replication_slot('node2_slot');
+    SELECT pg_create_physical_replication_slot('node3_slot');
+    ```
+
+5.  **Restart the Primary Server:**
     Apply the changes by restarting the PostgreSQL service.
 
     ```bash
@@ -163,8 +173,23 @@ The following steps must be performed on `node1`, `node2`, and `node3`.
 
     > **Note:** The `-R` flag is crucial as it automatically creates the `standby.signal` file and writes the `primary_conninfo` connection settings into `postgresql.auto.conf`.
 
+4.  Assign Replication Slot: Use `ALTER SYSTEM` to configure the unique slot for this standby. This requires a start/restart sequence.
 
-4.  **Enable and Start the Service:**
+```bash
+    # Start the service once to be able to run ALTER SYSTEM
+
+    sudo systemctl start postgresql@17-main.service
+
+    # Run the command. For node2 use 'node2_slot', etc.
+
+    sudo -u postgres psql -d pagila -c "ALTER SYSTEM SET primary_slot_name = 'node1_slot';"
+
+    # Restart the service for the setting to take effect
+
+    sudo systemctl restart postgresql@17-main.service
+```
+
+5.  **Enable and Start the Service:**
     Use the version-specific service name to enable and start PostgreSQL.
 
     ```bash
@@ -174,14 +199,20 @@ The following steps must be performed on `node1`, `node2`, and `node3`.
 
 ## ✅ Verification
 
-After configuring all three standbys, connect to `psql` on the **primary server (`Lenovo`)** and run the following query:
+After configuring all three standbys, connect to `psql` on the **primary server (`Lenovo`)** and run the following queries:
 
 ```sql
 SELECT client_addr, state, sent_lsn, replay_lsn
 FROM pg_stat_replication;
 ```
 
-You should see **three rows**, one for each standby (`192.168.122.101`, `102`, `103`), with the `state` listed as `streaming`. This confirms the cluster is fully operational.
+You should see three rows, one for each standby's IP, with its assigned slot.
+
+```sql
+SELECT slot_name, active FROM pg_replication_slots;
+```
+
+The active column should be t (true) for all three slots, confirming they are in use by a connected standby.
 
 ## 📄 Project Report
 
