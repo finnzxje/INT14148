@@ -30,20 +30,16 @@
 
 
 \begin{document}
-% can use linebreaks \\ within to get better formatting as desired
 \title{Deployment and Analysis of a Distributed PostgreSQL Database System Using the Pagila Dataset}
 
-
-% author names and affiliations
 \author{\IEEEauthorblockN{Huynh Minh Thinh}
 \IEEEauthorblockA{\textit{Department of Information Technology 2} \\
 \textit{Posts and Telecommunications Institute of Technology at HCM city}\\
 Ho Chi Minh City, Vietnam \\
 D22CQCN01-N \\
 n22dccn082@student.ptithcm.edu.vn}}
-\date{25/4/15}
+\date{}
 
-% make the title area
 \maketitle
 
 % \IEEEpeerreviewmaketitle
@@ -66,42 +62,25 @@ This project puts that solution into practice. I set out to build and analyze a 
 
 This report will walk you through the entire project. It starts by explaining the core problem of scaling a database and how replication helps solve it. I'll then cover the step-by-step process of setting up the virtual machines, configuring the main server and its replicas, and loading the Pagila data. After that, I will analyze how well this setup would support a busy web application, and I'll finish by summarizing what I learned and suggesting ideas for the future.
 \section{Problem Definition}
-This will be a revised version of the problem definition in your proposal.
+Any successful website eventually hits two walls. The first is the "too popular" problem: so many people are using the site at once that it slows to a crawl. The second is the "everything is broken" problem: a single server fails, and the entire site goes offline.
 
+For an online movie rental service, the "too popular" issue comes from having thousands of users Browse the catalog simultaneously. Most of what they do—searching for films, reading descriptions, checking actor pages—are read operations. These requests quickly overwhelm a single database server, leading to frustratingly slow load times for everyone.
 
-% An example of a floating figure using the graphicx package.
-% Note that \label must occur AFTER (or within) \caption.
-% For figures, \caption should occur after the \includegraphics.
-% Note that IEEEtran v1.7 and later has special internal code that
-% is designed to preserve the operation of \label within \caption
-% even when the captionsoff option is in effect. However, because
-% of issues like this, it may be the safest practice to put all your
-% \label just after \caption rather than within \caption{}.
-%
-% Reminder: the "draftcls" or "draftclsnofoot", not "draft", class
-% option should be used if it is desired that the figures are to be
-% displayed while in draft mode.
-%
-% \begin{figure}[!h]
-% \centering
-% \includegraphics[width=0.8\columnwidth]{trilece} 
-% \caption{Simulation Results}
-% \label{fig_sim}
-% \end{figure}
-
-% Note that IEEE typically puts floats only at the top, even when this
-% results in a large percentage of a column being occupied by floats.
+The "everything is broken" problem is even more severe. If our one and only database server crashes, there is no backup. The entire service becomes unavailable, losing customers and revenue. This project's goal is to build a database system that solves both these problems: one that can handle a massive read workload without slowing down, and one that can survive a server failure without shutting down completely.
 
 \section{Proposed Solutions}
-This may be a modified version of your proposal depending on previously carried out research or any feedback received.  
-\subsection{Your first solution}
-Describe your first solution here.
-\subsection{Your second solution}
-Describe your second solution here.
-\subsection{Your third solution}
-Describe your third solution here.
-\subsubsection{Subsubsection Heading Here}
-Use the subsubsection command with caution---you probably won't need it at, but I'm including it this an example.
+
+With the main goals of speed and reliability in mind for a future large-scale site, I had to make a big decision right at the start: how should the data be organized across multiple servers? It really boiled down to two main philosophies: splitting the data up, or making copies of it.
+
+\subsection{The "Divide and Conquer" Method: Sharding}
+The first philosophy, sharding, is like deciding to replace one massive, central filing cabinet with several smaller ones. You'd organize them by a clear rule—for example, putting all customer files for names A-M in the first cabinet, and N-Z in the second.
+
+The big advantage here is that you can have multiple people filing new documents at the same time, which is fantastic for handling a huge volume of new data (writes). The real challenge, though, is the new complexity. Your application now has to act like a smart receptionist, knowing exactly which cabinet to send someone to for a specific file. Any task that needs information from both cabinets, like a company-wide report, becomes a real puzzle to solve.
+
+\subsection{The "Make a Copy" Method: Replication (My Chosen Solution)}
+The other philosophy, and the one I chose for this project, is replication. Instead of splitting up the filing cabinet, I decided to keep the original as the one "master" source of truth, and then create several perfect duplicates.
+
+The system operates on a simple rule: any new information (a write) must go to the master cabinet first. Once it's there, an identical copy of the update is immediately sent out to all the duplicate cabinets. The payoff for this is huge. When a hundred people need to look something up (a read), they can be sent to any of the available copies. This keeps the line at the master cabinet short, leaving it free to handle new, incoming information.
 
 \section{Criteria for Assessing Solutions} \label{sec:criteria}
 This may be a modified version of your proposal depending on previously carried out research or any feedback received.  
@@ -127,9 +106,9 @@ All the specific details, like the IP addresses I used for each server, are list
 \textbf{Role} & \textbf{Hostname} & \textbf{Operating System} & \textbf{Static IP Address} \\
 \midrule
 Primary   & Lenovo & EndeavourOS (Host) & 192.168.122.1 \\
-Standby 1 & node1             & Ubuntu Server 24.04  & 192.168.122.102 \\
-Standby 2 & node2             & Ubuntu Server 24.04  & 192.168.122.103 \\
-Standby 3 & node3             & Ubuntu Server 24.04  & 192.168.122.104 \\
+Standby 1 & node1             & Ubuntu Server 24.04  & 192.168.122.101 \\
+Standby 2 & node2             & Ubuntu Server 24.04  & 192.168.122.102 \\
+Standby 3 & node3             & Ubuntu Server 24.04  & 192.168.122.103 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -140,6 +119,8 @@ To save time and make sure all the servers were identical, I didn't build each o
 My starting point for the template was a clean installation of Ubuntu Server 24.04. I got it fully updated and then installed the essential software. The most important piece, naturally, was PostgreSQL version 17—it had to be an exact match to the primary server. I also threw in a couple of basic networking tools like openssh-server and iputils-ping to make life easier later on.
 
 Once the template was good to go, I simply cloned it three times to create my three standby servers. This left me with three identical VMs, which was a great start, but they each needed their own unique identity before they could work together in the cluster. This meant making a few unique tweaks to each one:
+
+
 
 \begin{enumerate}
 \item \textbf{Gave it a new name:} I changed the hostname of each server using the hostnamectl command so I could tell them apart. For example, this is how I set the name for the first standby:
@@ -154,6 +135,9 @@ sudo hostnamectl set-hostname node1
 \end{enumerate}
 
 The very last thing I did on each standby server was to stop the PostgreSQL service from running with sudo systemctl stop postgresql. This was important because their data folders needed to be empty and ready for the next big step: copying all the data over from the primary server using the pg\_basebackup tool.
+
+
+
 
 % The main difference between this section and the one in your report proposal is use of verb tense: there you suggested what you will do and here you will describe what you did. Be concise and precise when outlining how you researched your potential solutions. 
 % Remember that your research should be guided by: 

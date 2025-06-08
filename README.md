@@ -1,8 +1,8 @@
 # Project: Distributed PostgreSQL Database with Streaming Replication
 
 **Course:** INT14148 - Distributed Database Systems  
-**Project ID:** Project 12
-**Student ID:** N22DCCN082
+**Project ID:** Project 12  
+**Student ID** N22DCCN082  
 **Class ID:** D22CQCN01-N
 
 ## Project Description
