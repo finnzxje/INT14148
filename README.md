@@ -31,27 +31,37 @@ The system is built on a hybrid physical-virtual model, with the host machine ac
 The cluster consists of one primary node that handles all write operations (`INSERT`, `UPDATE`, `DELETE`) and three standby nodes that replicate data from the primary in near real-time. The standby nodes are configured as "hot standbys," allowing them to serve read-only queries.
 
 ```mermaid
+
 graph TD
-    subgraph Application Layer
+    subgraph "Application Layer"
         A[Web Application]
     end
-    subgraph Database Cluster
-        P[Primary Server: Lenovo\n192.168.122.1]
-        S1[Standby 1: node1\n192.168.122.101]
-        S2[Standby 2: node2\n192.168.122.102]
-        S3[Standby 3: node3\n192.168.122.103]
+
+    subgraph "Database Cluster (192.168.122.0/24)"
+        P[Primary Server: Lenovo
+        192.168.122.1]
+        S1[Standby 1: node1
+        192.168.122.101]
+        S2[Standby 2: node2
+        192.168.122.102]
+        S3[Standby 3: node3
+        192.168.122.103]
     end
+
     A -- "Writes (SQL)" --> P
     A -- "Reads (SQL)" --> S1
     A -- "Reads (SQL)" --> S2
     A -- "Reads (SQL)" --> S3
+
     P -- "Streaming Replication (WAL)" --> S1
     P -- "Streaming Replication (WAL)" --> S2
     P -- "Streaming Replication (WAL)" --> S3
+
     style P fill:#c9f,stroke:#333,stroke-width:2px
     style S1 fill:#9cf,stroke:#333,stroke-width:2px
     style S2 fill:#9cf,stroke:#333,stroke-width:2px
     style S3 fill:#9cf,stroke:#333,stroke-width:2px
+
 ```
 
 | Role      | Hostname | Operating System    | Static IP Address |
