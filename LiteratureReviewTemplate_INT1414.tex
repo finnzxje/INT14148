@@ -137,6 +137,20 @@ sudo hostnamectl set-hostname node1
 The very last thing I did on each standby server was to stop the PostgreSQL service from running with sudo systemctl stop postgresql. This was important because their data folders needed to be empty and ready for the next big step: copying all the data over from the primary server using the pg\_basebackup tool.
 
 
+\subsection{Setting Up the Replication}
+With the three standby servers prepped and waiting, the next step was to configure the primary server (Lenovo) to allow them to connect and then to actually create the replicas. This process felt a bit like setting up a secure radio broadcast: first, I had to turn on the transmitter on the primary, and then I had to give each standby a radio tuned to the right frequency.
+
+First, I edited two core configuration files on the primary server. In postgresql.conf, I changed the listen\_addresses to ensure the server was listening for network connections, not just local ones. I also set wal\_level = replica, which tells PostgreSQL to write down enough information in its logs to allow a standby to perfectly reconstruct the data.
+
+Next, in the pg\_hba.conf file—which acts as PostgreSQL's own firewall—I added a new rule. This rule explicitly gave a special user named replicator permission to connect from any of my standby servers for the purpose of replication.
+
+With the primary server ready to broadcast its changes, it was time for the magic step: cloning the data. On each standby server, I ran the pg\_basebackup command. This powerful tool connects to the primary, makes a perfect binary copy of the entire database, and—thanks to the -R flag—automatically creates the necessary configuration files on the standby to tell it how to follow the primary.
+
+sudo -u postgres pg\_basebackup -h Lenovo \
+-U replicator -D /var/lib/postgresql/17/main \
+-P -R -Xs
+
+After the backup was complete on each standby, the final step was to simply start the PostgreSQL service. Upon starting, each standby read its new configuration, connected back to the Lenovo primary, and immediately began receiving a live stream of any new data changes. A quick check on the primary using SELECT * FROM pg\_stat\_replication; confirmed the result: all three standby nodes were connected and streaming, and my distributed cluster was officially online.
 
 
 % The main difference between this section and the one in your report proposal is use of verb tense: there you suggested what you will do and here you will describe what you did. Be concise and precise when outlining how you researched your potential solutions. 
@@ -151,27 +165,27 @@ The very last thing I did on each standby server was to stop the PostgreSQL serv
 % In this section, only describe how you collected data, and explain what you did to test your criteria.  \emph{Do not include your findings in this section.}
 
 \section{Analysis and Interpretation}
- In this section you will mainly analyze your data in terms of your assessment criteria; e.g., do the data suggest that a particular solution is ``cost effective'' ``environmentally acceptable'', ``technically feasible'' or ``affordable''?
-   
-Be logical and selective when analyzing/interpreting your research data.  For example, if a proposed solution is proven to be far too expensive to realistically implement in your context, is there any value in discussing whether it is ``culturally viable'' or ``technically sustainable''? Perhaps in this case you can focus more attention on solutions that your research suggests are more valid.  Do not just throw huge quantities of raw data at your reader and leave them to interpret it. Present enough to transparently support any conclusions you draw and make sure that you offer justifications for your analysis.  
-
-Be honest and reflective while discussing your data. Your data might be too limited or unclear to interpret with accuracy---explain this, perhaps suggesting how this shortcoming could be addressed. Admitting the above will help you draw more honest and worthwhile conclusions.  
-
-Remember that research is an imperfect and ongoing process that should be open to question and verification. Therefore, unless convinced by the absolute strength of your evidence, you should be tentative in your language choice when interpreting/analyzing research results. Selectively use {\em hedging} (language which indicates a lack of certainty) to modify the tone of your analysis and any conclusions that result from this. 
-
-Here are some examples that show differing degrees of certainty:
-\begin{itemize}  
-\item it appears that \ldots
-\item it can be tentatively concluded that \ldots
-\item it is almost certain that \ldots
-\item perhaps the evidence indicates \ldots
-\item this seems to point to the fact that \ldots
-\item this could be interpreted as evidence of \ldots
-\item without doubt its application would prove beneficial for \ldots
-\end{itemize}
-
-Finally, don’t introduce any new content (e.g., research methods or solutions) within this section---this will prove confusing for the reader. The reader should clearly understand that you are, based on specific criteria, interpreting the results of your research in order to test the viability of various solutions to remedy a particular problem. The sole function of this part of the report is to openly discuss your research findings in order to set up your conclusions/recommendations.
-
+%  In this section you will mainly analyze your data in terms of your assessment criteria; e.g., do the data suggest that a particular solution is ``cost effective'' ``environmentally acceptable'', ``technically feasible'' or ``affordable''?
+%
+% Be logical and selective when analyzing/interpreting your research data.  For example, if a proposed solution is proven to be far too expensive to realistically implement in your context, is there any value in discussing whether it is ``culturally viable'' or ``technically sustainable''? Perhaps in this case you can focus more attention on solutions that your research suggests are more valid.  Do not just throw huge quantities of raw data at your reader and leave them to interpret it. Present enough to transparently support any conclusions you draw and make sure that you offer justifications for your analysis.  
+%
+% Be honest and reflective while discussing your data. Your data might be too limited or unclear to interpret with accuracy---explain this, perhaps suggesting how this shortcoming could be addressed. Admitting the above will help you draw more honest and worthwhile conclusions.  
+%
+% Remember that research is an imperfect and ongoing process that should be open to question and verification. Therefore, unless convinced by the absolute strength of your evidence, you should be tentative in your language choice when interpreting/analyzing research results. Selectively use {\em hedging} (language which indicates a lack of certainty) to modify the tone of your analysis and any conclusions that result from this. 
+%
+% Here are some examples that show differing degrees of certainty:
+% \begin{itemize}  
+% \item it appears that \ldots
+% \item it can be tentatively concluded that \ldots
+% \item it is almost certain that \ldots
+% \item perhaps the evidence indicates \ldots
+% \item this seems to point to the fact that \ldots
+% \item this could be interpreted as evidence of \ldots
+% \item without doubt its application would prove beneficial for \ldots
+% \end{itemize}
+%
+% Finally, don’t introduce any new content (e.g., research methods or solutions) within this section---this will prove confusing for the reader. The reader should clearly understand that you are, based on specific criteria, interpreting the results of your research in order to test the viability of various solutions to remedy a particular problem. The sole function of this part of the report is to openly discuss your research findings in order to set up your conclusions/recommendations.
+%
 
 % Example of a table from http://www.latextemplates.com/template/professional-table
 \begin{table} % Add the following just after the closing bracket on this line to specify a position for the table on the page: [h], [t], [b] or [p] - these mean: here, top, bottom and on a separate page, respectively
@@ -217,35 +231,35 @@ The appendix is for material that readers only need to know if they are studying
 Each appendix needs to be given a letter (A, B, C, etc.) and a title. \LaTeX will do the lettering automatically.
 
 
-\begin{thebibliography}{1}
+% \begin{thebibliography}{1}
 % Here are a few examples of different citations 
 % Book
-\bibitem{kopka_1999} % Note the label in the curly brackets. Use the cite the source; e.g., \cite{kopka_latex}
-H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
-  0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
-\bibitem{horowitz_2005}D.~Horowitz, \emph{End of Time}. New York, NY, USA: Encounter Books, 2005. [E-book] Available: ebrary, \url{http://site.ebrary.com/lib/sait/Doc?id=10080005}. Accessed on: Oct. 8, 2008.
-% Article from database
-\bibitem{castlevecchi_2008}D.~Castelvecchi, ``Nanoparticles Conspire with Free Radicals'' \emph{Science News}, vol.174, no. 6, p. 9, September 13, 2008. [Full Text]. Available: Proquest, \url{http://proquest.umi.com/pqdweb?index=52&did=1557231641&SrchMode=1&sid=3&Fmt=3&VInst=PROD&VType=PQD&RQT=309&VName=PQD&TS=1229451226&clientId=533}. Accessed on: Aug.~3, 2014.
-% Conference Paper from the Internet
-\bibitem{lach_2010}J.~Lach, ``SBFS: Steganography based file system,'' in \emph{Proceedings of the 2008 1st International Conference on Information Technology, IT 2008, 19-21 May 2008, Gdansk, Poland.} Available: IEEE Xplore, \url{http://www.ieee.org}. [Accessed: 10 Sept. 2010].
-% Web page, no author
-\bibitem{a_laymans_explanation}``A `layman's' explanation of Ultra Narrow Band technology,'' Oct.~3, 2003. [Online]. Available: \url{http://www.vmsk.org/Layman.pdf}. [Accessed: Dec.~3, 2003]. 
-\end{thebibliography}
-
-% This is a hand-made bibliography. If you want to use a BibTeX file, you're on your own ;-)
-
-
-
-
-
-
-
-
-
-
-
-
-
+% \bibitem{kopka_1999} % Note the label in the curly brackets. Use the cite the source; e.g., \cite{kopka_latex}
+% H.~Kopka and P.~W. Daly, \emph{A Guide to \LaTeX}, 3rd~ed.\hskip 1em plus
+%   0.5em minus 0.4em\relax Harlow, England: Addison-Wesley, 1999.
+% \bibitem{horowitz_2005}D.~Horowitz, \emph{End of Time}. New York, NY, USA: Encounter Books, 2005. [E-book] Available: ebrary, \url{http://site.ebrary.com/lib/sait/Doc?id=10080005}. Accessed on: Oct. 8, 2008.
+% % Article from database
+% \bibitem{castlevecchi_2008}D.~Castelvecchi, ``Nanoparticles Conspire with Free Radicals'' \emph{Science News}, vol.174, no. 6, p. 9, September 13, 2008. [Full Text]. Available: Proquest, \url{http://proquest.umi.com/pqdweb?index=52&did=1557231641&SrchMode=1&sid=3&Fmt=3&VInst=PROD&VType=PQD&RQT=309&VName=PQD&TS=1229451226&clientId=533}. Accessed on: Aug.~3, 2014.
+% % Conference Paper from the Internet
+% \bibitem{lach_2010}J.~Lach, ``SBFS: Steganography based file system,'' in \emph{Proceedings of the 2008 1st International Conference on Information Technology, IT 2008, 19-21 May 2008, Gdansk, Poland.} Available: IEEE Xplore, \url{http://www.ieee.org}. [Accessed: 10 Sept. 2010].
+% % Web page, no author
+% \bibitem{a_laymans_explanation}``A `layman's' explanation of Ultra Narrow Band technology,'' Oct.~3, 2003. [Online]. Available: \url{http://www.vmsk.org/Layman.pdf}. [Accessed: Dec.~3, 2003]. 
+% \end{thebibliography}
+%
+% % This is a hand-made bibliography. If you want to use a BibTeX file, you're on your own ;-)
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
+%
 \end{document}
 
 
