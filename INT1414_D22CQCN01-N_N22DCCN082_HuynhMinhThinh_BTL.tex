@@ -61,12 +61,14 @@
 Ho Chi Minh City, Vietnam \\
 D22CQCN01-N \\
 n22dccn082@student.ptithcm.edu.vn}}
-\date{}
+\date{09/06/25}
 
 \maketitle
 
 \begin{abstract}
-For this project, I tackled the common challenge of building a database that can handle both heavy user traffic and unexpected server failures. I constructed a four-node PostgreSQL 17 cluster, using one primary server to handle all data changes and three hot-standby replicas to manage read requests. To make the system resilient, I used native streaming replication enhanced with dedicated replication slots, which guarantees that a standby server can always reconnect without losing its place in the data stream. I built this system on a KVM virtualized environment and used the Pagila sample database to simulate a realistic workload for a movie rental website. My analysis confirmed that this architecture can effectively distribute read queries to prevent performance bottlenecks and can maintain read-only service even when the primary server fails. Ultimately, this project demonstrates that this replication model is a strong and practical foundation for building scalable and reliable web applications, with clear next steps like automated failover being the path toward a production-ready system.
+For this project, I tackled the common challenge of building a database that can handle both heavy user traffic and unexpected server failures. I constructed a four-node PostgreSQL 17 cluster, using one primary server to handle all data changes and three hot-standby replicas to manage read requests. To make the system resilient, I used native streaming replication enhanced with dedicated replication slots, which guarantees that a standby server can always reconnect without losing its place in the data stream. I built this system on a KVM virtualized environment and used the Pagila sample database to simulate a realistic workload for a physical DVD rental store. My analysis confirmed that this architecture can effectively distribute read queries to prevent performance bottlenecks and can maintain read-only service even when the primary server fails. Ultimately, this project demonstrates that this replication model is a strong and practical foundation for building scalable and reliable web applications, with clear next steps like automated failover being the path toward a production-ready system.
+
+
 \end{abstract}
 
 
@@ -83,7 +85,7 @@ This report will walk you through the entire project. It starts by explaining th
 \section{Problem Definition}
 Any successful website eventually hits two walls. The first is the "too popular" problem: so many people are using the site at once that it slows to a crawl. The second is the "everything is broken" problem: a single server fails, and the entire site goes offline.
 
-For an online movie rental service, the "too popular" issue comes from having thousands of users Browse the catalog simultaneously. Most of what they do—searching for films, reading descriptions, checking actor pages—are read operations. These requests quickly overwhelm a single database server, leading to frustratingly slow load times for everyone.
+For an online DVD rental service, the "too popular" issue comes from having thousands of users Browse the catalog simultaneously. Most of what they do—searching for films, reading descriptions, checking actor pages—are read operations. These requests quickly overwhelm a single database server, leading to frustratingly slow load times for everyone.
 
 The "everything is broken" problem is even more severe. If our one and only database server crashes, there is no backup. The entire service becomes unavailable, losing customers and revenue. This project's goal is to build a database system that solves both these problems: one that can handle a massive read workload without slowing down, and one that can survive a server failure without shutting down completely.
 
@@ -107,7 +109,7 @@ The system operates on a simple rule: any new information (a write) must go to t
 I chose replication over sharding because of three important factors that were directly related to the project's goals:
 
 \begin{itemize}
-    \item \textbf{Alignment with Workload:} The target application, which is a movie rental service, is mostly read-heavy. Replication makes read-only copies to deal with this directly, while sharding is mostly used for workloads that need a lot of writing.
+    \item \textbf{Alignment with Workload:} The target application, which is a DVD rental service, is mostly read-heavy. Replication makes read-only copies to deal with this directly, while sharding is mostly used for workloads that need a lot of writing.
 
     \item \textbf{Path to High Availability:} Replication makes it easy to set up high availability because any standby server is a full copy of the data that can be used as a primary.
     \item \textbf{Implementation Simplicity:} Native streaming replication is a core feature of PostgreSQL that is easy to use and well-documented. It doesn't need complicated changes to the application-level logic, which makes it much easier to set up correctly than a sharded architecture.
@@ -171,8 +173,7 @@ The final preparatory step was to stop the PostgreSQL service on each of these n
 
 Before the standbys could connect, I had to configure the primary server (Lenovo) to accept incoming replication connections securely. This involved two main tasks.
 
-First, I edited the primary's configuration files. In postgresql.conf, I set listen\_addresses to allow network connections and ensured wal\_level was set to replica. The replica setting is the minimum level that writes enough information to the Write-Ahead Log (WAL) to support streaming replication. In pg\_hba.conf, which controls authentication, I added a rule to specifically allow the replicator user to connect to the special replication pseudo-database from any of the standby servers' IP addresses.
-
+First, I edited the primary's configuration files. In postgresql.conf, I set listen\_addresses to allow network connections and ensured wal\_level was set to replica. The replica setting is the minimum level that writes enough information to the Write-Ahead Log (WAL) to support streaming replication. Next, I had to configure the primary's security rules. A normal database connection is for accessing a specific database like 'pagila'. However, a replication connection is more powerful, as it needs access to the entire server's stream of data changes. To control this, I added a specific rule to the pg\_hba.conf file, which acts as PostgreSQL's firewall. This rule defines three conditions: the connection's purpose must be replication, it must be initiated by the replicator user, and it must come from the secure IP address range of my standby servers. This ensures that only my authorized standby servers can request the database's stream of changes.
 Second, to make the replication link more robust, I implemented Replication Slots. This PostgreSQL feature provides a guarantee that the primary will not discard WAL files needed by a standby, even if that standby is disconnected for a long time. On the primary server, I created a unique, named slot for each of the three standby nodes.
 
 \begin{lstlisting}[language=sql, caption={Creating a dedicated replication slot for each standby on the Primary.}, label={lst:create_slots}]
@@ -206,15 +207,19 @@ After restarting all the standbys for the final time, I checked the \texttt{pg\_
 
 
 \section{Analysis and Interpretation}
-The implemented architecture was analyzed to assess its effectiveness against the goals of scalability and availability for a web application designed to grow from a modest starting point to a large, active user base.
+With the four-node cluster up and running, the next logical step was to put it to the test. I wanted to see if the architecture I built actually solved the two main problems I set out to address: handling a heavy read workload and surviving a server failure.
 
 \subsection{Read Scalability Analysis}
-The three hot-standby nodes directly address the "too popular" problem. In this architecture, a load balancer could be implemented to distribute the high volume of `SELECT` queries (e.g., film searches, Browse) evenly across the three replicas. This would leave the primary server's resources free to handle the less frequent but critical `INSERT` and `UPDATE` operations (e.g., new user registrations, processing rentals). This division of labor effectively multiplies the system's read throughput, allowing it to serve a large user base without the performance degradation that a single server would experience.
+The most immediate benefit of having three hot-standby servers is how it solves the "too popular" problem. I confirmed that I could connect directly to any of the standby nodes and run SELECT queries, while any INSERT or UPDATE commands were correctly rejected.
+
+This means that in a real-world scenario, a load balancer could be used to direct all the Browse and searching traffic—which makes up most of a user's activity—to these three replicas. This strategy would free up the primary server almost entirely, leaving its resources dedicated to the less frequent but more critical tasks of processing new rentals or user sign-ups. The end result is a system that can handle a much larger volume of read traffic without slowing down, because the work is effectively shared across multiple machines.
 
 \subsection{High Availability Analysis}
-The cluster's resilience was tested by simulating a primary server failure. When the primary service was stopped, the standby nodes remained online and continued serving read queries, confirming the system's ability to avoid complete downtime. An application connected to the standbys for reads would remain partially functional.
+To test the "everything is broken" problem, I simulated a disaster by intentionally shutting down the primary server's database service. The result was exactly what I had hoped for. The standby servers didn't crash; they simply noted the lost connection in their logs and continued running.
 
-To restore full write capability, a manual failover is required, where a standby is promoted to become the new primary. The use of dedicated replication slots is critical to the reliability of this process. A slot guarantees that a standby, even if disconnected for a long time, can always reconnect and synchronize without the risk of the primary having already deleted the necessary WAL files. This makes the failover process more predictable and eliminates a common cause of replication failure, directly addressing the "everything is broken" problem with a robust recovery path.
+I was still able to connect to a standby server and run read queries against the database, proving that the website wouldn't go completely offline in this scenario. Of course, any attempt to write new data failed, as the primary was the only server authorized to accept changes. The system had successfully entered a safe, read-only mode.
+
+To restore full functionality, a manual failover would be required, where I would need to promote one of the standbys to become the new primary. The use of replication slots, which I implemented, is what makes this process reliable. Because each standby has a reserved slot, I have a guarantee that it can always reconnect and get back in sync after a downtime, making the recovery process predictable and safe from the common issue of a broken replication link.
 
 \section{Conclusions and Recommendations}
 

@@ -178,7 +178,7 @@ The following steps must be performed on `node1`, `node2`, and `node3`.
 ```bash
     # Start the service once to be able to run ALTER SYSTEM
 
-    sudo systemctl start postgresql@17-main.service
+    sudo systemctl start postgresql.service
 
     # Run the command. For node2 use 'node2_slot', etc.
 
@@ -186,7 +186,7 @@ The following steps must be performed on `node1`, `node2`, and `node3`.
 
     # Restart the service for the setting to take effect
 
-    sudo systemctl restart postgresql@17-main.service
+    sudo systemctl restart postgresql.service
 ```
 
 5.  **Enable and Start the Service:**
@@ -218,7 +218,7 @@ The active column should be t (true) for all three slots, confirming they are in
 
 The final, detailed academic report for this project can be found in this repository:
 
-[**View the Full PDF Report**](./LiteratureReviewTemplate_INT1414.pdf)
+[**View the Full PDF Report**](./INT1414_D22CQCN01-N_N22DCCN082_HuynhMinhThinh_BTL.pdf)
 
 ---
 
